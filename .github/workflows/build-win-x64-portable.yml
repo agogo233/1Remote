@@ -1,0 +1,77 @@
+name: Build Win x64 Portable
+
+on:
+  workflow_dispatch:
+
+env:
+  configuration: Release
+  Main_Project: Ui/Ui.csproj
+
+jobs:
+  Build:
+    name: build_win_x64_portable
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            6.0.x
+            9.0.x
+
+      - name: Setup MSBuild.exe
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Cache nuget packages
+        id: cache-nuget-packages
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}\.nuget\packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('Ui/Ui.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Cache nuget packages home
+        id: cache-nuget-packages-home
+        uses: actions/cache@v3
+        with:
+          path: C:\Users\runneradmin\.nuget\packages
+          key: ${{ runner.os }}-nuget-home-${{ hashFiles('Ui/Ui.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-home
+
+      - name: Restore nuget packages
+        run: msbuild $env:Main_Project /t:Restore /p:Configuration=$env:Configuration
+
+      - name: Set salt
+        shell: pwsh
+        run: |
+          ./scripts/Set-Secret.ps1 -filePath .\Ui\Assert.cs -Pattern "===REPLACE_ME_WITH_SALT===" -Secret ${{ secrets.GLOBAL_STRING_ENCRYPTION_SLAT }}
+
+      - name: Get Version
+        run: ./scripts/Get-Version.ps1
+
+      - name: Publish net9 x64
+        run: dotnet publish $env:Main_Project -p:PublishProfile=./Ui/Properties/PublishProfiles/x64-net90.pubxml
+
+      - name: Upload artifact net9-x64
+        uses: actions/upload-artifact@v4
+        with:
+          name: 1Remote-${{env.BuildVersion}}-net9-x64
+          path: Ui/bin/Release/net9.0-windows/publish/win-x64
+
+      - name: Publish net9 x64 self-contained
+        run: dotnet publish $env:Main_Project -p:PublishProfile=./Ui/Properties/PublishProfiles/x64-net90-self-contained.pubxml
+
+      - name: Upload artifact net9-x64-self-contained
+        uses: actions/upload-artifact@v4
+        with:
+          name: 1Remote-${{env.BuildVersion}}-net9-x64-self-contained
+          path: Ui/bin/Release/net9.0-windows-self-contained/publish/win-x64

@@ -46,7 +46,7 @@ namespace _1RM.Service
             Exit,
             Minimize,
         };
-        public bool DoNotCheckNewVersion = false;
+        public bool DoNotCheckNewVersion = true;
         public int CloseButtonBehavior = (int)EnumCloseButtonBehavior.Minimize;
         public bool ConfirmBeforeClosingSession = false;
         [DefaultValue(true)]
