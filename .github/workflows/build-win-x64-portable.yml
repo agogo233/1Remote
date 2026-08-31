@@ -52,8 +52,14 @@ jobs:
 
       - name: Set salt
         shell: pwsh
+        env:
+          SALT: ${{ secrets.GLOBAL_STRING_ENCRYPTION_SLAT }}
         run: |
-          ./scripts/Set-Secret.ps1 -filePath .\Ui\Assert.cs -Pattern "===REPLACE_ME_WITH_SALT===" -Secret ${{ secrets.GLOBAL_STRING_ENCRYPTION_SLAT }}
+          if ([string]::IsNullOrEmpty($env:SALT)) {
+            Write-Host "::warning::GLOBAL_STRING_ENCRYPTION_SLAT is not set; building with placeholder salt (password encryption uses a known default salt)."
+          } else {
+            ./scripts/Set-Secret.ps1 -filePath .\Ui\Assert.cs -Pattern "===REPLACE_ME_WITH_SALT===" -Secret $env:SALT
+          }
 
       - name: Get Version
         run: ./scripts/Get-Version.ps1
